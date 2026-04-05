@@ -1,11 +1,17 @@
+require("dotenv").config();
+
 const express = require("express");
 const mongoose = require("mongoose");
 
+const mongoUri = process.env.MONGODB_URI;
+
+if (!mongoUri) {
+  console.error("MONGODB_URI environment variable is required");
+  process.exit(1);
+}
+
 const app = express();
 app.use(express.json());
-
-// TODO: replace with your own MongoDB connection string
-mongoose.connect("mongodb://127.0.0.1:27017/url_shortener");
 
 const urlSchema = new mongoose.Schema({
   originalUrl: String,
@@ -47,6 +53,22 @@ app.get("/:shortCode", async (req, res) => {
   res.redirect(url.originalUrl);
 });
 
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
-});
+app.get("/", (req, res) => {
+  // This is health check endpoint, it should return 200 OK
+  res.send("URL Shortener API is running");
+})
+
+async function startServer() {
+  try {
+    await mongoose.connect(mongoUri);
+
+    app.listen(3000, () => {
+      console.log("Server running on http://localhost:3000");
+    });
+  } catch (error) {
+    console.error("Failed to connect to MongoDB:", error.message);
+    process.exit(1);
+  }
+}
+
+startServer();
